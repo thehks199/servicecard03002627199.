@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Card Maker</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+--primary: #004d26;
+--primary-light: #006432;
+--accent: #1a73e8;
+--bg-soft: #f8faff;
+--card-shadow: 0 10px 30px rgba(0,0,0,0.08);
+--glass: rgba(255, 255, 255, 0.85);
+--glass-border: rgba(255, 255, 255, 0.5);
+--gold: #c5a059;
+}
+
+* { box-sizing: border-box; }
+
+body {
+font-family: 'Outfit', sans-serif;
+background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 50%, #f5f0e8 100%);
+margin: 0;
+padding: 0;
+padding-bottom: 80px;
+color: #333;
+min-height: 100vh;
+}
+
+/* ====== INFO MODAL ====== */
+.info-modal-overlay {
+position: fixed;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.6);
+z-index: 10000;
+display: flex;
+align-items: center;
+justify-content: center;
+backdrop-filter: blur(4px);
+}
+.info-modal {
+background: white;
+border-radius: 20px;
+padding: 35px 30px 25px;
+max-width: 500px;
+width: 90%;
+box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+text-align: center;
+position: relative;
+animation: modalIn 0.3s ease-out;
+}
+@keyframes modalIn {
+from { opacity: 0; transform: scale(0.9) translateY(20px); }
+to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.info-modal .icon-circle {
+width: 60px; height: 60px;
+background: linear-gradient(135deg, #004d26, #006432);
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+margin: 0 auto 20px;
+color: white;
+font-size: 28px;
+}
+.info-modal h3 { margin: 0 0 12px; color: #004d26; font-size: 20px; font-weight: 800; }
+.info-modal p { color: #666; font-size: 14px; line-height: 1.6; margin: 0 0 8px; }
+.info-modal .dev-info {
+background: #f0f7f3;
+border-radius: 12px;
+padding: 12px 18px;
+margin: 15px 0;
+font-weight: 700;
+color: #004d26;
+font-size: 13px;
+}
+.info-modal .dev-info a {
+color: #004d26;
+text-decoration: none;
+}
+.info-modal button {
+margin-top: 18px;
+padding: 12px 40px;
+background: linear-gradient(135deg, #004d26, #006432);
+color: white;
+border: none;
+border-radius: 12px;
+font-size: 15px;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.3s;
+}
+.info-modal button:hover {
+transform: translateY(-2px);
+box-shadow: 0 8px 20px rgba(0,77,38,0.3);
+}
+
+/* ====== HEADER BAR ====== */
+.top-bar {
+background: white;
+padding: 15px 30px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+position: sticky;
+top: 0;
+z-index: 100;
+backdrop-filter: blur(10px);
+}
+.top-bar .logo {
+font-size: 22px;
+font-weight: 800;
+color: #004d26;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.top-bar .counter {
+background: #f0f7f3;
+padding: 8px 16px;
+border-radius: 20px;
+font-size: 13px;
+font-weight: 600;
+color: #004d26;
+}
+
+/* ====== MAIN LAYOUT ====== */
+.maker-container {
+display: flex;
+flex-wrap: wrap;
+max-width: 1600px;
+margin: 30px auto;
+padding: 0 25px;
+gap: 35px;
+}
+
+/* ====== FORM SECTION ====== */
+.form-section {
+flex: 1;
+min-width: 380px;
+max-width: 480px;
+background: var(--glass);
+backdrop-filter: blur(10px);
+padding: 30px 28px;
+border-radius: 24px;
+box-shadow: var(--card-shadow);
+height: calc(100vh - 180px);
+overflow-y: auto;
+border: 1px solid var(--glass-border);
+position: sticky;
+top: 100px;
+}
+.form-section::-webkit-scrollbar { width: 5px; }
+.form-section::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+.form-section h3 {
+margin-top: 0;
+color: var(--primary);
+font-size: 18px;
+font-weight: 800;
+display: flex;
+align-items: center;
+gap: 10px;
+margin-bottom: 24px;
+padding-bottom: 15px;
+border-bottom: 2px solid #eef0f5;
+}
+.form-section h3 i { font-size: 20px; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label {
+display: flex;
+align-items: center;
+gap: 6px;
+margin-bottom: 6px;
+font-weight: 600;
+color: #555;
+font-size: 13px;
+}
+.form-group label i { font-size: 15px; color: #004d26; }
+.form-control {
+width: 100%;
+padding: 10px 14px;
+border: 1.5px solid #eef0f5;
+border-radius: 10px;
+font-size: 14px;
+box-sizing: border-box;
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+background: #fff;
+color: #1a1a1a;
+font-family: 'Outfit', sans-serif;
+}
+.form-control:focus {
+border-color: var(--accent);
+outline: none;
+box-shadow: 0 0 0 4px rgba(26,115,232,0.1);
+transform: translateY(-1px);
+}
+.form-control::placeholder { color: #bbb; }
+
+.file-upload-box {
+border: 2px dashed #dde;
+border-radius: 12px;
+padding: 20px;
+text-align: center;
+cursor: pointer;
+transition: all 0.3s;
+background: #fafbfc;
+}
+.file-upload-box:hover { border-color: #004d26; background: #f0f7f3; }
+.file-upload-box i { font-size: 24px; color: #999; }
+.file-upload-box p { font-size: 11px; color: #999; margin: 5px 0 0; }
+.file-upload-box img { max-width: 80px; max-height: 80px; border-radius: 6px; display: block; margin: 0 auto; }
+.file-upload-box input { display: none; }
+
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+
+/* ====== PREVIEW SECTION ====== */
+.preview-section {
+flex: 2;
+min-width: 550px;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 30px;
+padding-top: 10px;
+}
+
+/* Toolbar */
+.preview-toolbar {
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+justify-content: center;
+}
+.preview-toolbar button {
+padding: 10px 20px;
+border: none;
+border-radius: 10px;
+font-size: 13px;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.3s;
+font-family: 'Outfit', sans-serif;
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.btn-print { background: #004d26; color: white; }
+.btn-download { background: #1a73e8; color: white; }
+.btn-share { background: #25D366; color: white; }
+.btn-reset { background: #f0f0f0; color: #333; }
+.btn-mode { background: #f0f0f0; color: #333; }
+.btn-mode.active { background: #004d26; color: white; }
+.preview-toolbar button:hover {
+transform: translateY(-2px);
+box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+/* Card Container */
+.card-container {
+width: 100%;
+display: flex;
+justify-content: center;
+perspective: 1000px;
+}
+.card-flip {
+width: 3.375in;
+height: 2.125in;
+transform: scale(2.2);
+transform-origin: top center;
+margin-bottom: 280px;
+transition: transform 0.6s;
+filter: drop-shadow(0 15px 35px rgba(0,0,0,0.18));
+}
+.card-flip.flipped { transform: scale(2.2) rotateY(180deg); }
+.card-flip.portrait-mode {
+width: 2.125in;
+height: 3.375in;
+margin-bottom: 480px;
+}
+
+/* ====== CARD STYLES ====== */
+.theme-bg {
+position: relative !important;
+z-index: 1 !important;
+isolation: isolate !important;
+}
+.theme-bg::before {
+content: "";
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background-color: var(--theme-bg-color, #004d26);
+background-image: var(--theme-bg-image, none);
+background-size: var(--theme-bg-size, cover);
+background-repeat: repeat;
+background-position: center;
+z-index: -2 !important;
+opacity: var(--theme-bg-opacity, 1);
+filter: brightness(var(--theme-brightness, 1));
+}
+.theme-bg::after {
+content: "";
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background-color: var(--theme-overlay-color, transparent);
+opacity: var(--theme-overlay-opacity, 0);
+z-index: -1 !important;
+pointer-events: none;
+}
+
+.id-card {
+width: 100%; height: 100%;
+background-color: white;
+border-radius: 10px;
+position: relative;
+overflow: hidden;
+font-family: Arial, sans-serif;
+color: #000;
+box-sizing: border-box;
+border: 1px solid rgba(0,0,0,0.1);
+display: flex;
+flex-direction: column;
+}
+
+/* Front Card */
+.id-header {
+background: #004d26;
+color: white; text-align: center; padding: 4px 0 6px 0;
+font-family: 'Times New Roman', Times, serif; position: relative;
+}
+.id-header h4 { margin: 0; font-size: 13px; font-weight: bold; letter-spacing: 0.5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);}
+.id-header p { margin: 1px 0 0 0; font-size: 6px; font-weight: 900; text-transform: uppercase; font-family: Arial, sans-serif; text-shadow: 0.5px 0.5px 1px #000; }
+
+.header-logo-container { position: absolute; top: 2px; left: 5px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; z-index: 10;}
+.header-logo-container img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; border-radius: 50%; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); }
+.header-logo-container-right { position: absolute; top: 2px; right: 5px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; z-index: 10;}
+.header-logo-container-right img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; border-radius: 50%; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); }
+
+.school-bar { background: #f1c40f; padding: 2.5px; text-align: center; font-size: 8px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #ccc; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.body-layout { display: flex; padding: 5px 12px 0 12px; position: relative; flex: 1; z-index: 2;}
+
+.left-col { width: 80px; padding-top: 0px; }
+.right-col { flex: 1; display: flex; flex-direction: column; align-items: center; padding-left: 10px; }
+
+.service-tag { font-family: 'Times New Roman', Times, serif; font-size: 16px; font-weight: 900; color: #d32f2f; text-decoration: underline; margin-bottom: 2px; letter-spacing: 0.5px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+.emp-name { font-family: 'Times New Roman', Times, serif; font-size: 14px; font-weight: 800; color: #004d26; text-transform: uppercase; margin-bottom: 2px; text-align: center; text-shadow: -1px -1px 0px rgba(255,255,255,1), 1px 1px 0px rgba(0,0,0,0.3), 1px 2px 2px rgba(0,0,0,0.2); }
+.emp-desig { font-size: 10px; font-weight: bold; color: #333; margin-bottom: 8px; font-family: Arial, sans-serif; text-align: center;}
+
+.photo-box { width: 78px; height: 100px; border: 1.5px dashed #004d26; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #888; border-radius: 3px; position: relative; overflow: hidden; margin-top: 2px; }
+.photo-box img { width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; display: none; }
+
+.info-col { width: 100%; padding-left: 5px; text-align: left; font-size: 9.5px; line-height: 1.8; }
+.i-row { display: flex; margin-bottom: 2px; }
+.i-row .lbl { width: 60px; color: #333; font-weight: bold; }
+.i-row .val { flex: 1; color: #000; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.footer-sigs { position: absolute; bottom: 12px; width: 100%; display: flex; justify-content: space-between; padding: 0 15px; box-sizing: border-box; z-index: 3; }
+.sig-container { position: relative; width: 85px; text-align: center; }
+.sig-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); max-height: 28px; max-width: 100%; display: none; z-index: 5; }
+.sig-line-emp { border-top: 1px dashed #000; height: 1px; margin-top: 25px; }
+.sig-line-auth { border-top: 1.5px solid #000; height: 1px; margin-top: 25px; }
+.sig-label { font-size: 5.5px; margin: 2px 0 0 0; font-weight: 900; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.3px; text-shadow: 0.5px 0.5px 1px rgba(0,0,0,0.15); display: block; }
+
+.front-footer { position: absolute; bottom: 0; left: 0; width: 100%; height: 12px; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; box-sizing: border-box; font-size: 6.5px; color: white; font-weight: bold; text-transform: uppercase; z-index: 4; background: #004d26; }
+
+/* Back Card */
+.back-footer {
+position: absolute;
+bottom: 0;
+left: 0;
+width: 100%;
+background: #004d26;
+color: white;
+text-align: center;
+padding: 3px 10px;
+font-size: 5.5px;
+font-weight: 600;
+box-sizing: border-box;
+z-index: 3;
+}
+
+/* ====== THEME BAR ====== */
+.theme-bar-container {
+width: 100%;
+background: var(--glass);
+backdrop-filter: blur(15px);
+padding: 25px 30px;
+display: flex;
+flex-direction: column;
+align-items: center;
+border-top: 1px solid var(--glass-border);
+box-sizing: border-box;
+margin-top: 50px;
+border-radius: 24px 24px 0 0;
+box-shadow: 0 -10px 30px rgba(0,0,0,0.03);
+}
+.theme-bar-container h3 { margin: 0 0 15px; color: #004d26; font-size: 16px; font-weight: 700; }
+.theme-selector { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px; }
+.theme-btn {
+padding: 10px 18px;
+font-size: 12px;
+font-weight: 700;
+color: white;
+border-radius: 10px;
+cursor: pointer;
+border: 3px solid transparent;
+transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+display: flex;
+align-items: center;
+gap: 5px;
+font-family: 'Outfit', sans-serif;
+}
+.theme-btn:hover { transform: scale(1.08) translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+.theme-btn.active { border-color: #333; transform: scale(1.05); }
+
+.finish-bar { display: flex; gap: 10px; align-items: center; }
+.finish-bar span { font-size: 12px; font-weight: 600; color: #666; }
+.finish-btn {
+padding: 8px 20px;
+border: 2px solid #ddd;
+border-radius: 8px;
+font-size: 12px;
+font-weight: 600;
+cursor: pointer;
+background: white;
+font-family: 'Outfit', sans-serif;
+transition: all 0.3s;
+}
+.finish-btn.active { background: #004d26; color: white; border-color: #004d26; }
+
+/* ====== AESTHETICS CONTROLS ====== */
+.aesthetics-bar {
+display: flex;
+gap: 20px;
+flex-wrap: wrap;
+justify-content: center;
+align-items: center;
+padding: 15px 0;
+}
+.aesthetics-bar label { font-size: 12px; font-weight: 600; color: #555; }
+.aesthetics-bar input[type="range"] { width: 100px; }
+
+/* ====== TOAST ====== */
+#sc-toast {
+position: fixed;
+bottom: 30px;
+left: 50%;
+transform: translateX(-50%);
+background: rgba(0,0,0,0.85);
+color: white;
+padding: 12px 25px;
+border-radius: 50px;
+font-size: 14px;
+z-index: 9999;
+display: none;
+box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+animation: slideUp 0.3s ease-out;
+font-family: 'Outfit', sans-serif;
+}
+@keyframes slideUp {
+from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* ====== FOOTER ====== */
+.page-footer {
+text-align: center;
+padding: 20px 30px 30px;
+color: #888;
+font-size: 12px;
+font-weight: 500;
+border-top: 1px solid #eee;
+margin-top: 20px;
+}
+.page-footer a { color: #004d26; text-decoration: none; font-weight: 700; }
+.page-footer .dev-name { color: #004d26; font-weight: 700; }
+
+/* Responsive */
+@media (max-width: 1000px) {
+.maker-container { flex-direction: column; }
+.form-section { max-width: 100%; position: static; height: auto; }
+.preview-section { min-width: 100%; }
+.card-flip { transform: scale(1.5); margin-bottom: 150px; }
+}
+@media (max-width: 600px) {
+.card-flip { transform: scale(1.1); margin-bottom: 80px; }
+}
+</style>
+</head>
+<body>
+
+<!-- INFO MODAL -->
+<div class="info-modal-overlay" id="infoModal">
+<div class="info-modal">
+<div class="icon-circle"><i class="ph ph-info"></i></div>
+<h3>Service Card Maker</h3>
+<p>This card generation is FREE for all departments of Pakistan, not only govt. but any private institute can generate this card. All fields are editable — anyone related to any service, public or private, can easily generate a service card, download or share it.</p>
+<div class="dev-info">
+<strong>The HKS 03002627199, Developer.</strong><br>
+<a href="tel:03002627199">03002627199</a>
+</div>
+<p style="font-size:12px;color:#999;">This card generation is free, there is no any hidden fees.</p>
+<button onclick="closeInfoModal()">OK, Got It</button>
+</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+<div class="logo"><i class="ph ph-identification-card" style="font-size:26px;"></i> Service Card Maker</div>
+<div class="counter">🃏 Cards Generated: <span id="cardCount">0</span></div>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div class="maker-container">
+
+<!-- FORM SECTION -->
+<div class="form-section" id="formSection">
+<h3><i class="ph ph-pencil-line"></i> Card Header</h3>
+<div class="form-group">
+<label><i class="ph ph-buildings"></i> Main Title</label>
+<input type="text" class="form-control" id="mainTitle" placeholder="e.g. GOVERNMENT OF SINDH">
+</div>
+<div class="form-group">
+<label><i class="ph ph-buildings"></i> Sub Title</label>
+<input type="text" class="form-control" id="subTitle" placeholder="e.g. SCHOOL EDUCATION & LITERACY DEPARTMENT">
+</div>
+<div class="form-group">
+<label><i class="ph ph-buildings"></i> School / Office Name</label>
+<input type="text" class="form-control" id="schoolName" placeholder="e.g. GOVERNMENT HIGH SCHOOL">
+</div>
+
+<h3><i class="ph ph-image"></i> Images & Signatures</h3>
+<div class="form-row">
+<div class="form-group">
+<label>Employee Photo</label>
+<div class="file-upload-box" onclick="document.getElementById('empPhoto').click()">
+<i class="ph ph-user"></i>
+<p>Choose Photo</p>
+<img id="empPhotoPreview" src="" alt="">
+<input type="file" id="empPhoto" accept="image/*" onchange="handleFileUpload(this, 'empPhotoPreview', 'empPhotoData')">
+</div>
+</div>
+<div class="form-group">
+<label>Header Logo (Left)</label>
+<div class="file-upload-box" onclick="document.getElementById('logoLeft').click()">
+<i class="ph ph-image"></i>
+<p>Choose Logo</p>
+<img id="logoLeftPreview" src="" alt="">
+<input type="file" id="logoLeft" accept="image/*" onchange="handleFileUpload(this, 'logoLeftPreview', 'logoLeftData')">
+</div>
+</div>
+<div class="form-group">
+<label>Header Logo (Right)</label>
+<div class="file-upload-box" onclick="document.getElementById('logoRight').click()">
+<i class="ph ph-image"></i>
+<p>Choose Logo</p>
+<img id="logoRightPreview" src="" alt="">
+<input type="file" id="logoRight" accept="image/*" onchange="handleFileUpload(this, 'logoRightPreview', 'logoRightData')">
+</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Background Logo/Watermark</label>
+<div class="file-upload-box" onclick="document.getElementById('bgLogo').click()">
+<i class="ph ph-image"></i>
+<p>Choose Image</p>
+<img id="bgLogoPreview" src="" alt="">
+<input type="file" id="bgLogo" accept="image/*" onchange="handleFileUpload(this, 'bgLogoPreview', 'bgLogoData')">
+</div>
+</div>
+<div class="form-group">
+<label>Employee Signature</label>
+<div class="file-upload-box" onclick="document.getElementById('empSig').click()">
+<i class="ph ph-signature"></i>
+<p>Choose Signature</p>
+<img id="empSigPreview" src="" alt="">
+<input type="file" id="empSig" accept="image/*" onchange="handleFileUpload(this, 'empSigPreview', 'empSigData')">
+</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Issuing Authority Signature</label>
+<div class="file-upload-box" onclick="document.getElementById('authSig').click()">
+<i class="ph ph-signature"></i>
+<p>Choose Signature</p>
+<img id="authSigPreview" src="" alt="">
+<input type="file" id="authSig" accept="image/*" onchange="handleFileUpload(this, 'authSigPreview', 'authSigData')">
+</div>
+</div>
+<div class="form-group">
+<label><i class="ph ph-user"></i> Issuing Authority Title</label>
+<input type="text" class="form-control" id="authTitle" placeholder="e.g. HEAD MASTER">
+</div>
+</div>
+
+<h3><i class="ph ph-user-list"></i> Personal Details</h3>
+<div class="form-row">
+<div class="form-group">
+<label>Employee Name</label>
+<input type="text" class="form-control" id="empName" placeholder="Enter name">
+</div>
+<div class="form-group">
+<label>Designation</label>
+<input type="text" class="form-control" id="designation" placeholder="e.g. HST, BPS-16">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Father Name</label>
+<input type="text" class="form-control" id="fatherName" placeholder="Enter father name">
+</div>
+<div class="form-group">
+<label>CNIC No.</label>
+<input type="text" class="form-control" id="cnic" placeholder="e.g. 45102-1234567-9">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>P.ID No / ID Number</label>
+<input type="text" class="form-control" id="pidNo" placeholder="Enter ID number">
+</div>
+<div class="form-group">
+<label>Caste (For Portrait)</label>
+<input type="text" class="form-control" id="caste" placeholder="Enter caste">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Issue Date</label>
+<input type="date" class="form-control" id="issueDate">
+</div>
+<div class="form-group">
+<label>Valid Upto</label>
+<input type="date" class="form-control" id="validUpto">
+</div>
+</div>
+
+<h3><i class="ph ph-info"></i> Back Details</h3>
+<div class="form-row">
+<div class="form-group">
+<label>Date of Birth</label>
+<input type="date" class="form-control" id="dob">
+</div>
+<div class="form-group">
+<label>Appt. Date</label>
+<input type="date" class="form-control" id="apptDate">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Blood Group</label>
+<input type="text" class="form-control" id="bloodGroup" placeholder="e.g. AB+ve">
+</div>
+<div class="form-group">
+<label>Place of Posting</label>
+<input type="text" class="form-control" id="posting" placeholder="Enter posting">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>SEMIS Code</label>
+<input type="text" class="form-control" id="semisCode" placeholder="Enter code">
+</div>
+<div class="form-group">
+<label>Address</label>
+<input type="text" class="form-control" id="address" placeholder="Enter address">
+</div>
+</div>
+<div class="form-group">
+<label><i class="ph ph-phone"></i> Mobile Number</label>
+<input type="text" class="form-control" id="mobile" placeholder="e.g. 0300-1234567">
+</div>
+</div>
+
+<!-- PREVIEW SECTION -->
+<div class="preview-section" id="previewSection">
+<!-- Toolbar -->
+<div class="preview-toolbar">
+<button class="btn-mode active" onclick="setMode('landscape')" id="btnLandscape">🖼️ Landscape</button>
+<button class="btn-mode" onclick="setMode('portrait')" id="btnPortrait">📱 Portrait</button>
+<button class="btn-print" onclick="printCard()"><i class="ph ph-printer"></i> Print</button>
+<button class="btn-download" onclick="downloadPDF()"><i class="ph ph-download"></i> Download HD PDF</button>
+<button class="btn-share" onclick="shareWhatsApp()"><i class="ph ph-whatsapp-logo"></i> Share WhatsApp</button>
+<button class="btn-reset" onclick="resetForm()"><i class="ph ph-arrow-counter-clockwise"></i> Reset</button>
+</div>
+
+<!-- Aesthetics -->
+<div class="aesthetics-bar">
+<label>Brightness <span id="brightnessVal">100%</span></label>
+<input type="range" min="30" max="200" value="100" oninput="updateAesthetics()" id="brightness">
+<label>Transparency <span id="transparencyVal">0%</span></label>
+<input type="range" min="0" max="100" value="0" oninput="updateAesthetics()" id="transparency">
+<button class="btn-reset" onclick="resetAesthetics()">Reset Defaults</button>
+</div>
+
+<!-- Front Card -->
+<div class="card-container">
+<div class="card-flip" id="cardFlip">
+<div class="id-card theme-bg" id="frontCard">
+<div class="id-header">
+<div class="header-logo-container"><img id="logoLeftImg" src="" alt=""></div>
+<div class="header-logo-container-right"><img id="logoRightImg" src="" alt=""></div>
+<h4 id="previewMainTitle">GOVERNMENT OF SINDH</h4>
+<p id="previewSubTitle">SCHOOL EDUCATION & LITERACY DEPARTMENT</p>
+</div>
+<div class="school-bar" id="previewSchoolBar">GOVERNMENT (N).D.A.V. HIGH SCHOOL GHOTKI</div>
+<div class="body-layout">
+<div class="left-col">
+<div class="photo-box" style="text-align:center;padding-top:5px;">
+<img id="photoImg" src="" alt="">
+<span id="photoPlaceholder">PHOTO</span>
+</div>
+</div>
+<div class="right-col">
+<div class="service-tag">SERVICE CARD</div>
+<div class="emp-name" id="previewEmpName">____________</div>
+<div class="emp-desig" id="previewDesignation">____________</div>
+<div class="info-col">
+<div class="i-row"><span class="lbl">CNIC:</span><span class="val" id="previewCnic">____________</span></div>
+<div class="i-row"><span class="lbl">P.ID No:</span><span class="val" id="previewPidNo">____________</span></div>
+<div class="i-row"><span class="lbl">Issue Date:</span><span class="val" id="previewIssueDate">____________</span></div>
+<div class="i-row"><span class="lbl">Valid Upto:</span><span class="val" id="previewValidUpto">____________</span></div>
+</div>
+</div>
+</div>
+<div class="footer-sigs">
+<div class="sig-container">
+<img class="sig-img" id="empSigImg" src="" alt="">
+<div class="sig-line-emp"></div>
+<p class="sig-label">Employee Signature</p>
+</div>
+<div class="sig-container">
+<img class="sig-img" id="authSigImg" src="" alt="">
+<div class="sig-line-auth"></div>
+<p class="sig-label front-sig-label" id="previewAuthTitle">____________</p>
+</div>
+</div>
+<div class="front-footer">
+<span id="previewSchoolName">GOVERNMENT (N).D.A.V. HIGH SCHOOL GHOTKI</span>
+</div>
+</div>
+</div>
+</div>
+
+<br>
+
+<!-- Back Card -->
+<div class="card-container">
+<div class="card-flip" id="cardFlipBack">
+<div class="id-card theme-bg" id="backCard" style="position:relative;">
+<div class="id-header">
+<h4>EMPLOYEE INFORMATION</h4>
+</div>
+<div style="padding:8px 15px;flex:1;font-size:8px;line-height:2.2;">
+<div class="i-row"><span class="lbl">Name & Caste:</span><span class="val" id="previewBackName">____________</span></div>
+<div class="i-row"><span class="lbl">F/Name:</span><span class="val" id="previewBackFName">____________</span></div>
+<div class="i-row"><span class="lbl">CNIC No:</span><span class="val" id="previewBackCnic">____________</span></div>
+<div class="i-row"><span class="lbl">P.ID No:</span><span class="val" id="previewBackPid">____________</span></div>
+<div class="i-row"><span class="lbl">D.O.B:</span><span class="val" id="previewBackDob">____________</span> <span style="float:right;margin-right:20px;"><span class="lbl">Appt.:</span><span class="val" id="previewBackAppt">____________</span></span></div>
+<div class="i-row"><span class="lbl">Posting:</span><span class="val" id="previewBackPosting">____________</span></div>
+<div class="i-row"><span class="lbl">SEMIS Code:</span><span class="val" id="previewBackSemis">____________</span> <span style="float:right;margin-right:20px;"><span class="lbl">Blood:</span><span class="val" id="previewBackBlood">____________</span></span></div>
+<div class="i-row"><span class="lbl">Address:</span><span class="val" id="previewBackAddress">____________</span></div>
+<div class="i-row"><span class="lbl">Mobile:</span><span class="val" id="previewBackMobile">____________</span></div>
+<p style="font-size:5.5px;color:#888;margin:4px 0 0;text-align:center;">This card is property of <span id="previewProperty">____________</span>, if found please return.</p>
+</div>
+<div class="back-footer" id="backFooterText">
+Developed by The HKS 03002627199 | Contact for details
+</div>
+</div>
+</div>
+</div>
+
+<!-- THEME BAR -->
+<div class="theme-bar-container">
+<h3>🎨 Select Theme & Aesthetics</h3>
+<div class="theme-selector" id="themeSelector">
+<button class="theme-btn active" style="background:linear-gradient(135deg,#004d26,#006432)" onclick="setTheme('original', '#004d26', '#f1c40f', 'none')" data-theme="original">🌿 Original Green</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#8B0000,#a52a2a)" onclick="setTheme('ajrak', '#8B0000', '#d4a574', 'none')" data-theme="ajrak">🟤 Sindhi Ajrak</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#1a237e,#283593)" onclick="setTheme('royal', '#1a237e', '#ffd700', 'none')" data-theme="royal">👑 Royal Blue</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#4a148c,#6a1b9a)" onclick="setTheme('purple', '#4a148c', '#e1bee7', 'none')" data-theme="purple">💜 Regal Purple</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#b71c1c,#d32f2f)" onclick="setTheme('red', '#b71c1c', '#ffcdd2', 'none')" data-theme="red">🔴 Crimson Red</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#00695c,#00897b)" onclick="setTheme('teal', '#00695c', '#b2dfdb', 'none')" data-theme="teal">🩵 Ocean Teal</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#e65100,#ef6c00)" onclick="setTheme('amber', '#e65100', '#ffe0b2', 'none')" data-theme="amber">🟠 Amber Gold</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)" onclick="setTheme('emerald', '#1b5e20', '#c8e6c9', 'none')" data-theme="emerald">💚 Emerald</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#0d47a1,#1565c0)" onclick="setTheme('sapphire', '#0d47a1', '#bbdefb', 'none')" data-theme="sapphire">💙 Sapphire</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#212121,#424242)" onclick="setTheme('onyx', '#212121', '#bdbdbd', 'none')" data-theme="onyx">⚫ Onyx Black</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#3e2723,#4e342e)" onclick="setTheme('bronze', '#3e2723', '#d7ccc8', 'none')" data-theme="bronze">🤎 Bronze</button>
+<button class="theme-btn" style="background:linear-gradient(135deg,#880e4f,#ad1457)" onclick="setTheme('maroon', '#880e4f', '#f8bbd0', 'none')" data-theme="maroon">🌹 Royal Maroon</button>
+</div>
+<div class="finish-bar">
+<span>Finish Style:</span>
+<button class="finish-btn active" onclick="setFinish('solid')" id="finishSolid">Solid Finish</button>
+<button class="finish-btn" onclick="setFinish('metallic')" id="finishMetallic">Metallic Gloss</button>
+</div>
+</div>
+
+<!-- PAGE FOOTER -->
+<div class="page-footer">
+<span class="dev-name">Developed by The HKS 03002627199</span> | Contact for details
+</div>
+
+<!-- TOAST -->
+<div id="sc-toast"></div>
+
+<!-- ====== JAVASCRIPT ====== -->
+<script>
+// ========== DATA STORE ==========
+const imageData = {
+empPhotoData: null, logoLeftData: null, logoRightData: null,
+bgLogoData: null, empSigData: null, authSigData: null
+};
+let currentTheme = 'original';
+let currentFinish = 'solid';
+let cardCount = parseInt(localStorage.getItem('sc_cardCount') || '0');
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', function() {
+document.getElementById('cardCount').textContent = cardCount;
+// Info modal shown by default
+document.getElementById('infoModal').style.display = 'flex';
+// Attach input listeners
+const inputs = document.querySelectorAll('.form-control');
+inputs.forEach(input => {
+input.addEventListener('input', updatePreview);
+});
+// Initial preview
+updatePreview();
+});
+
+// ========== MODAL ==========
+function closeInfoModal() {
+document.getElementById('infoModal').style.display = 'none';
+}
+
+// ========== FILE UPLOAD ==========
+function handleFileUpload(input, previewId, dataKey) {
+const file = input.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = function(e) {
+const preview = document.getElementById(previewId);
+if (preview) {
+preview.src = e.target.result;
+preview.style.display = 'block';
+// Hide icon and text siblings
+const box = preview.parentElement;
+const icon = box.querySelector('i');
+const p = box.querySelector('p');
+if (icon) icon.style.display = 'none';
+if (p) p.style.display = 'none';
+}
+imageData[dataKey] = e.target.result;
+updatePreview();
+};
+reader.readAsDataURL(file);
+}
+
+// ========== GET VALUE ==========
+function gv(id) {
+const el = document.getElementById(id);
+return el ? el.value.trim() : '';
+}
+
+function fmt(val) { return val || '____________'; }
+
+function fmtDate(dateStr) {
+if (!dateStr) return '____________';
+const parts = dateStr.split('-');
+if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
+return dateStr;
+}
+
+// ========== UPDATE PREVIEW ==========
+function updatePreview() {
+// Front Card
+const mainTitle = gv('mainTitle');
+const subTitle = gv('subTitle');
+const schoolName = gv('schoolName');
+const empName = gv('empName');
+const designation = gv('designation');
+const cnic = gv('cnic');
+const pidNo = gv('pidNo');
+const issueDate = gv('issueDate');
+const validUpto = gv('validUpto');
+const authTitle = gv('authTitle');
+
+// Header
+if (mainTitle) {
+document.getElementById('previewMainTitle').textContent = mainTitle;
+} else {
+document.getElementById('previewMainTitle').textContent = '\u00A0';
+}
+if (subTitle) {
+document.getElementById('previewSubTitle').textContent = subTitle;
+} else {
+document.getElementById('previewSubTitle').textContent = '\u00A0';
+}
+if (schoolName) {
+document.getElementById('previewSchoolBar').textContent = schoolName;
+document.getElementById('previewSchoolName').textContent = schoolName;
+document.getElementById('previewProperty').textContent = schoolName;
+} else {
+document.getElementById('previewSchoolBar').textContent = '\u00A0';
+document.getElementById('previewSchoolName').textContent = '____________';
+document.getElementById('previewProperty').textContent = '____________';
+}
+
+document.getElementById('previewEmpName').textContent = fmt(empName);
+document.getElementById('previewDesignation').textContent = fmt(designation);
+document.getElementById('previewCnic').textContent = fmt(cnic);
+document.getElementById('previewPidNo').textContent = fmt(pidNo);
+document.getElementById('previewIssueDate').textContent = fmtDate(issueDate);
+document.getElementById('previewValidUpto').textContent = fmtDate(validUpto);
+document.getElementById('previewAuthTitle').textContent = fmt(authTitle);
+
+// Images
+const photoImg = document.getElementById('photoImg');
+const photoPlaceholder = document.getElementById('photoPlaceholder');
+if (imageData.empPhotoData) {
+photoImg.src = imageData.empPhotoData;
+photoImg.style.display = 'block';
+photoPlaceholder.style.display = 'none';
+} else {
+photoImg.style.display = 'none';
+photoPlaceholder.style.display = 'block';
+}
+
+const logoLeftImg = document.getElementById('logoLeftImg');
+if (imageData.logoLeftData) {
+logoLeftImg.src = imageData.logoLeftData;
+logoLeftImg.style.display = 'block';
+} else { logoLeftImg.style.display = 'none'; }
+
+const logoRightImg = document.getElementById('logoRightImg');
+if (imageData.logoRightData) {
+logoRightImg.src = imageData.logoRightData;
+logoRightImg.style.display = 'block';
+} else { logoRightImg.style.display = 'none'; }
+
+const empSigImg = document.getElementById('empSigImg');
+if (imageData.empSigData) {
+empSigImg.src = imageData.empSigData;
+empSigImg.style.display = 'block';
+} else { empSigImg.style.display = 'none'; }
+
+const authSigImg = document.getElementById('authSigImg');
+if (imageData.authSigData) {
+authSigImg.src = imageData.authSigData;
+authSigImg.style.display = 'block';
+} else { authSigImg.style.display = 'none'; }
+
+// BG watermark
+const frontCard = document.getElementById('frontCard');
+const backCard = document.getElementById('backCard');
+if (imageData.bgLogoData) {
+const bgStyle = `url(${imageData.bgLogoData})`;
+frontCard.style.setProperty('--theme-bg-image', bgStyle);
+backCard.style.setProperty('--theme-bg-image', bgStyle);
+} else {
+frontCard.style.setProperty('--theme-bg-image', 'none');
+backCard.style.setProperty('--theme-bg-image', 'none');
+}
+
+// Back Card
+const fatherName = gv('fatherName');
+const caste = gv('caste');
+const dob = gv('dob');
+const apptDate = gv('apptDate');
+const bloodGroup = gv('bloodGroup');
+const posting = gv('posting');
+const semisCode = gv('semisCode');
+const address = gv('address');
+const mobile = gv('mobile');
+
+const backName = empName + (caste ? ' ' + caste : '');
+document.getElementById('previewBackName').textContent = fmt(backName);
+document.getElementById('previewBackFName').textContent = fmt(fatherName);
+document.getElementById('previewBackCnic').textContent = fmt(cnic);
+document.getElementById('previewBackPid').textContent = fmt(pidNo);
+document.getElementById('previewBackDob').textContent = fmtDate(dob);
+document.getElementById('previewBackAppt').textContent = fmtDate(apptDate);
+document.getElementById('previewBackPosting').textContent = fmt(posting);
+document.getElementById('previewBackSemis').textContent = fmt(semisCode);
+document.getElementById('previewBackBlood').textContent = fmt(bloodGroup);
+document.getElementById('previewBackAddress').textContent = fmt(address);
+document.getElementById('previewBackMobile').textContent = fmt(mobile);
+
+// Update back footer - always shows developer credit (The HKS)
+document.getElementById('backFooterText').innerHTML = 'Developed by The HKS 03002627199 | Contact for details';
+}
+
+// ========== THEME ==========
+function setTheme(theme, bgColor, schoolBarColor, bgImage) {
+currentTheme = theme;
+// Update active button
+const btns = document.querySelectorAll('.theme-btn');
+btns.forEach(b => b.classList.remove('active'));
+const activeBtn = document.querySelector(`[data-theme="${theme}"]`);
+if (activeBtn) activeBtn.classList.add('active');
+
+document.documentElement.style.setProperty('--theme-bg-color', bgColor);
+const frontCard = document.getElementById('frontCard');
+const backCard = document.getElementById('backCard');
+frontCard.style.setProperty('--theme-bg-color', bgColor);
+backCard.style.setProperty('--theme-bg-color', bgColor);
+
+const headers = document.querySelectorAll('.id-header');
+headers.forEach(h => h.style.background = bgColor);
+const frontFooters = document.querySelectorAll('.front-footer');
+frontFooters.forEach(f => f.style.background = bgColor);
+
+const backFooters = document.querySelectorAll('.back-footer');
+backFooters.forEach(f => f.style.background = bgColor);
+
+const schoolBars = document.querySelectorAll('.school-bar');
+schoolBars.forEach(s => s.style.background = schoolBarColor);
+
+// Update emp name color
+const empNames = document.querySelectorAll('.emp-name');
+empNames.forEach(e => e.style.color = bgColor);
+
+// Update photo box border
+const photoBoxes = document.querySelectorAll('.photo-box');
+photoBoxes.forEach(p => p.style.borderColor = bgColor);
+}
+
+// ========== FINISH ==========
+function setFinish(finish) {
+currentFinish = finish;
+document.getElementById('finishSolid').classList.toggle('active', finish === 'solid');
+document.getElementById('finishMetallic').classList.toggle('active', finish === 'metallic');
+
+const cards = document.querySelectorAll('.id-card');
+if (finish === 'metallic') {
+cards.forEach(c => c.style.background = 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 30%, #e8e8e8 50%, #f5f5f5 70%, #ffffff 100%)');
+} else {
+cards.forEach(c => c.style.background = 'white');
+}
+}
+
+// ========== MODE ==========
+function setMode(mode) {
+const cardFlip = document.getElementById('cardFlip');
+const cardFlipBack = document.getElementById('cardFlipBack');
+document.getElementById('btnLandscape').classList.toggle('active', mode === 'landscape');
+document.getElementById('btnPortrait').classList.toggle('active', mode === 'portrait');
+
+if (mode === 'portrait') {
+cardFlip.classList.add('portrait-mode');
+cardFlipBack.classList.add('portrait-mode');
+} else {
+cardFlip.classList.remove('portrait-mode');
+cardFlipBack.classList.remove('portrait-mode');
+}
+}
+
+// ========== AESTHETICS ==========
+function updateAesthetics() {
+const brightness = document.getElementById('brightness').value;
+const transparency = document.getElementById('transparency').value;
+document.getElementById('brightnessVal').textContent = brightness + '%';
+document.getElementById('transparencyVal').textContent = transparency + '%';
+document.documentElement.style.setProperty('--theme-brightness', brightness / 100);
+document.documentElement.style.setProperty('--theme-bg-opacity', 1 - (transparency / 100));
+}
+
+function resetAesthetics() {
+document.getElementById('brightness').value = 100;
+document.getElementById('transparency').value = 0;
+updateAesthetics();
+}
+
+// ========== RESET ==========
+function resetForm() {
+const inputs = document.querySelectorAll('.form-control');
+inputs.forEach(input => { input.value = ''; });
+// Clear images
+Object.keys(imageData).forEach(k => imageData[k] = null);
+const previews = document.querySelectorAll('.file-upload-box img[id$="Preview"]');
+previews.forEach(p => { p.src = ''; p.style.display = 'none'; });
+const icons = document.querySelectorAll('.file-upload-box i');
+icons.forEach(i => i.style.display = '');
+const texts = document.querySelectorAll('.file-upload-box p');
+texts.forEach(p => p.style.display = '');
+// Clear file inputs
+const fileInputs = document.querySelectorAll('input[type="file"]');
+fileInputs.forEach(f => f.value = '');
+updatePreview();
+resetAesthetics();
+showToast('Form reset successfully!');
+}
+
+// ========== PRINT ==========
+function printCard() {
+cardCount++;
+localStorage.setItem('sc_cardCount', cardCount.toString());
+document.getElementById('cardCount').textContent = cardCount;
+
+const printWindow = window.open('', '_blank');
+const frontHTML = document.getElementById('frontCard').outerHTML;
+const backHTML = document.getElementById('backCard').outerHTML;
+const style = document.querySelector('style').outerHTML;
+const themeStyle = `
+<style>
+:root { --theme-bg-color: ${document.documentElement.style.getPropertyValue('--theme-bg-color') || '#004d26'}; }
+</style>`;
+
+printWindow.document.write(`
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Service Card</title>
+${style}
+${themeStyle}
+<style>
+@page { size: 3.375in 2.125in; margin: 0; }
+body { margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.id-card { width: 3.375in; height: 2.125in; page-break-after: always; }
+@media print { body { padding: 0; } }
+</style>
+</head><body>
+${frontHTML}
+<div style="page-break-after:always;"></div>
+${backHTML}
+</body></html>
+`);
+printWindow.document.close();
+setTimeout(() => { printWindow.print(); }, 500);
+showToast('Card sent to printer!');
+}
+
+// ========== DOWNLOAD PDF ==========
+function downloadPDF() {
+cardCount++;
+localStorage.setItem('sc_cardCount', cardCount.toString());
+document.getElementById('cardCount').textContent = cardCount;
+
+const { jsPDF } = window.jspdf;
+const frontCard = document.getElementById('frontCard');
+const backCard = document.getElementById('backCard');
+
+html2canvas(frontCard, { scale: 4, useCORS: true, backgroundColor: '#ffffff' }).then(canvas1 => {
+html2canvas(backCard, { scale: 4, useCORS: true, backgroundColor: '#ffffff' }).then(canvas2 => {
+const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: [2.125, 3.375] });
+pdf.addImage(canvas1.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 3.375, 2.125);
+pdf.addPage([2.125, 3.375], 'landscape');
+pdf.addImage(canvas2.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 3.375, 2.125);
+pdf.save('Service_Card.pdf');
+showToast('PDF downloaded successfully!');
+});
+});
+}
+
+// ========== SHARE WHATSAPP ==========
+function shareWhatsApp() {
+const empName = gv('empName') || 'Employee';
+const text = `Service Card for ${empName} - Generated by Service Card Maker (The HKS 03002627199)`;
+const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+window.open(url, '_blank');
+}
+
+// ========== TOAST ==========
+function showToast(msg) {
+const toast = document.getElementById('sc-toast');
+toast.textContent = msg;
+toast.style.display = 'block';
+setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+</script>
+
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"3279d41ec7804124a29acc6e692f9a2b","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
